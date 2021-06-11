@@ -31,7 +31,7 @@ public class ProgramAdministratorProgramListView extends BaseHtmlView {
 
   @Inject
   public ProgramAdministratorProgramListView(AdminLayout layout, Config config) {
-    this.layout = checkNotNull(layout);
+    this.layout = checkNotNull(layout).setProgramAdminType();
     this.baseUrl = checkNotNull(config).getString("base_url");
   }
 
@@ -52,6 +52,7 @@ public class ProgramAdministratorProgramListView extends BaseHtmlView {
                                     programs.getDraftProgramDefinition(name)))));
 
     HtmlBundle htmlBundle = layout.getBundle().setTitle(title).addMainContent(contentDiv);
+
     return layout.renderCentered(htmlBundle);
   }
 
