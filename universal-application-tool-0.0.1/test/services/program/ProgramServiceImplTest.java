@@ -632,6 +632,79 @@ public class ProgramServiceImplTest extends WithPostgresContainer {
   }
 
   @Test
+  public void removeBlockPredicate() throws Exception {
+    Program program = ProgramBuilder.newDraftProgram().build();
+
+    // First set the predicate and assert its presence.
+    PredicateDefinition predicate =
+        PredicateDefinition.create(
+            PredicateExpressionNode.create(
+                LeafOperationExpressionNode.create(
+                    1L, Scalar.CITY, Operator.EQUAL_TO, PredicateValue.of(""))),
+            PredicateAction.HIDE_BLOCK);
+    ps.setBlockPredicate(program.id, 1L, predicate);
+
+    ProgramDefinition foundWithPredicate = ps.getProgramDefinition(program.id);
+    assertThat(foundWithPredicate.blockDefinitions().get(0).visibilityPredicate())
+        .hasValue(predicate);
+
+    // Then remove that predicate and assert its absence.
+    ps.removeBlockPredicate(program.id, 1L);
+
+    ProgramDefinition foundWithoutPredicate = ps.getProgramDefinition(program.id);
+    assertThat(foundWithoutPredicate.blockDefinitions().get(0).visibilityPredicate()).isEmpty();
+  }
+
+  @Test
+  public void setProgramQuestionDefinitionOptionality() throws Exception {
+    QuestionDefinition question = nameQuestion;
+    ProgramDefinition programDefinition =
+        ProgramBuilder.newDraftProgram()
+            .withBlock()
+            .withQuestionDefinition(question)
+            .buildDefinition();
+    Long programId = programDefinition.id();
+
+    assertThat(
+            programDefinition
+                .getBlockDefinitionByIndex(0)
+                .get()
+                .programQuestionDefinitions()
+                .get(0)
+                .optional())
+        .isFalse();
+
+    programDefinition =
+        ps.setProgramQuestionDefinitionOptionality(programId, 1L, nameQuestion.getId(), true);
+    assertThat(
+            programDefinition
+                .getBlockDefinitionByIndex(0)
+                .get()
+                .programQuestionDefinitions()
+                .get(0)
+                .optional())
+        .isTrue();
+
+    programDefinition =
+        ps.setProgramQuestionDefinitionOptionality(programId, 1L, nameQuestion.getId(), false);
+    assertThat(
+            programDefinition
+                .getBlockDefinitionByIndex(0)
+                .get()
+                .programQuestionDefinitions()
+                .get(0)
+                .optional())
+        .isFalse();
+
+    // Checking that there's no problem
+    assertThatThrownBy(
+            () ->
+                ps.setProgramQuestionDefinitionOptionality(
+                    programId, 1L, nameQuestion.getId() + 1, false))
+        .isInstanceOf(ProgramQuestionDefinitionNotFoundException.class);
+  }
+
+  @Test
   public void deleteBlock_invalidProgram_throwsProgramNotfoundException() {
     assertThatThrownBy(() -> ps.deleteBlock(1L, 2L))
         .isInstanceOf(ProgramNotFoundException.class)
