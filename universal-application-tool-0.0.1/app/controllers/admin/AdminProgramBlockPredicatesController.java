@@ -5,6 +5,7 @@ import static play.mvc.Results.notFound;
 import static play.mvc.Results.ok;
 
 import auth.Authorizers;
+import com.google.common.collect.ImmutableList;
 import controllers.CiviFormController;
 import forms.BlockVisibilityPredicateForm;
 import javax.inject.Inject;
@@ -15,6 +16,7 @@ import play.mvc.Http.Request;
 import play.mvc.Result;
 import services.applicant.question.Scalar;
 import services.program.BlockDefinition;
+import services.program.IllegalPredicateOrderingException;
 import services.program.ProgramBlockDefinitionNotFoundException;
 import services.program.ProgramDefinition;
 import services.program.ProgramNotFoundException;
@@ -81,15 +83,15 @@ public class AdminProgramBlockPredicatesController extends CiviFormController {
       //  question). In the future we should support logical statements that combine multiple "leaf
       //  node" predicates with ANDs and ORs.
       BlockVisibilityPredicateForm predicateForm = predicateFormWrapper.get();
+      LeafOperationExpressionNode leafExpression =
+          LeafOperationExpressionNode.create(
+              predicateForm.getQuestionId(),
+              Scalar.valueOf(predicateForm.getScalar()),
+              Operator.valueOf(predicateForm.getOperator()),
+              PredicateValue.of(predicateForm.getPredicateValue()));
+      PredicateAction action = PredicateAction.valueOf(predicateForm.getPredicateAction());
       PredicateDefinition predicateDefinition =
-          PredicateDefinition.create(
-              PredicateExpressionNode.create(
-                  LeafOperationExpressionNode.create(
-                      predicateForm.getQuestionId(),
-                      Scalar.valueOf(predicateForm.getScalar()),
-                      Operator.valueOf(predicateForm.getOperator()),
-                      PredicateValue.of(predicateForm.getPredicateValue()))),
-              PredicateAction.valueOf(predicateForm.getPredicateAction()));
+          PredicateDefinition.create(PredicateExpressionNode.create(leafExpression), action);
 
       try {
         programService.setBlockPredicate(programId, blockDefinitionId, predicateDefinition);
@@ -98,12 +100,19 @@ public class AdminProgramBlockPredicatesController extends CiviFormController {
       } catch (ProgramBlockDefinitionNotFoundException e) {
         return notFound(
             String.format("Block ID %d not found for Program %d", blockDefinitionId, programId));
+      } catch (IllegalPredicateOrderingException e) {
+        return redirect(
+                routes.AdminProgramBlockPredicatesController.edit(programId, blockDefinitionId))
+            .flashing("error", e.getLocalizedMessage());
       }
 
       return redirect(
               routes.AdminProgramBlockPredicatesController.edit(programId, blockDefinitionId))
           .flashing(
-              "success", String.format("Saved visibility condition: %s", predicateDefinition));
+              "success",
+              String.format(
+                  "Saved visibility condition: %s %s",
+                  action.toDisplayString(), leafExpression.toDisplayString(ImmutableList.of())));
     }
   }
 
