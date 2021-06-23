@@ -1,5 +1,6 @@
 package views.questiontypes;
 
+import static j2html.TagCreator.dialog;
 import static j2html.TagCreator.div;
 import static j2html.TagCreator.input;
 
@@ -18,6 +19,7 @@ import services.applicant.question.EnumeratorQuestion;
 import services.applicant.question.Scalar;
 import views.BaseHtmlView;
 import views.components.FieldWithLabel;
+import views.components.Modal;
 import views.style.ApplicantStyles;
 import views.style.ReferenceClasses;
 import views.style.StyleUtils;
@@ -113,10 +115,15 @@ public class EnumeratorQuestionRenderer extends ApplicantQuestionRenderer {
                     localizedEntityType))
             .addReferenceClass(ReferenceClasses.ENTITY_NAME_INPUT)
             .getContainer();
+    String confirmationMessage = messages.at(MessageKey.ENUMERATOR_DIALOG_CONFIRM_DELETE.getKeyName(),
+            localizedEntityType));
     Tag removeEntityButton =
         TagCreator.button()
             .withType("button")
             .withCondId(existingIndex.isPresent(), existingIndex.map(String::valueOf).orElse(""))
+            .attr("onclick", String.format("if(confirm('%s')){ return true; } " +
+                    "else { var e = arguments[0] || window.event; e.stopImmediatePropagation(); return false; }",
+                    confirmationMessage))
             .withClasses(
                 existingEntity.isPresent()
                     ? StyleUtils.joinStyles(ReferenceClasses.ENUMERATOR_EXISTING_DELETE_BUTTON)
