@@ -7,34 +7,30 @@ import models.Account;
 import models.Applicant;
 import play.libs.concurrent.HttpExecutionContext;
 import repository.DatabaseExecutionContext;
-import repository.ProgramRepository;
 import repository.VersionRepository;
 
 public class ProfileFactory {
 
   private DatabaseExecutionContext dbContext;
   private HttpExecutionContext httpContext;
-  private Provider<ProgramRepository> programRepositoryProvider;
   private Provider<VersionRepository> versionRepositoryProvider;
 
   @Inject
   public ProfileFactory(
       DatabaseExecutionContext dbContext,
       HttpExecutionContext httpContext,
-      Provider<ProgramRepository> programRepositoryProvider,
       Provider<VersionRepository> versionRepositoryProvider) {
     this.dbContext = Preconditions.checkNotNull(dbContext);
     this.httpContext = Preconditions.checkNotNull(httpContext);
-    this.programRepositoryProvider = Preconditions.checkNotNull(programRepositoryProvider);
     this.versionRepositoryProvider = Preconditions.checkNotNull(versionRepositoryProvider);
   }
 
-  public UatProfileData createNewApplicant() {
+  public CiviFormProfileData createNewApplicant() {
     return create(Roles.ROLE_APPLICANT);
   }
 
-  public UatProfileData createNewAdmin() {
-    UatProfileData p = create(Roles.ROLE_UAT_ADMIN);
+  public CiviFormProfileData createNewAdmin() {
+    CiviFormProfileData p = create(Roles.ROLE_CIVIFORM_ADMIN);
     wrapProfileData(p)
         .getAccount()
         .thenAccept(
@@ -46,26 +42,26 @@ public class ProfileFactory {
     return p;
   }
 
-  public UatProfile wrapProfileData(UatProfileData p) {
-    return new UatProfile(dbContext, httpContext, p, programRepositoryProvider.get());
+  public CiviFormProfile wrapProfileData(CiviFormProfileData p) {
+    return new CiviFormProfile(dbContext, httpContext, p);
   }
 
-  private UatProfileData create(Roles role) {
-    UatProfileData p = new UatProfileData();
+  private CiviFormProfileData create(Roles role) {
+    CiviFormProfileData p = new CiviFormProfileData();
     p.init(dbContext);
     p.addRole(role.toString());
     return p;
   }
 
-  public UatProfile wrap(Account account) {
-    return wrapProfileData(new UatProfileData(account.id));
+  public CiviFormProfile wrap(Account account) {
+    return wrapProfileData(new CiviFormProfileData(account.id));
   }
 
-  public UatProfile wrap(Applicant applicant) {
-    return wrapProfileData(new UatProfileData(applicant.getAccount().id));
+  public CiviFormProfile wrap(Applicant applicant) {
+    return wrapProfileData(new CiviFormProfileData(applicant.getAccount().id));
   }
 
-  public UatProfileData createNewProgramAdmin() {
+  public CiviFormProfileData createNewProgramAdmin() {
     return create(Roles.ROLE_PROGRAM_ADMIN);
   }
 
@@ -73,8 +69,8 @@ public class ProfileFactory {
    * This creates a program admin who is automatically the admin of all programs currently live,
    * with a fake email address.
    */
-  public UatProfileData createFakeProgramAdmin() {
-    UatProfileData p = create(Roles.ROLE_PROGRAM_ADMIN);
+  public CiviFormProfileData createFakeProgramAdmin() {
+    CiviFormProfileData p = create(Roles.ROLE_PROGRAM_ADMIN);
     wrapProfileData(p)
         .getAccount()
         .thenAccept(

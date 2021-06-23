@@ -21,6 +21,7 @@ import views.BaseHtmlView;
 import views.components.FieldWithLabel;
 import views.components.Modal;
 import views.style.ApplicantStyles;
+import views.style.BaseStyles;
 import views.style.ReferenceClasses;
 import views.style.StyleUtils;
 import views.style.Styles;
@@ -71,7 +72,7 @@ public class EnumeratorQuestionRenderer extends ApplicantQuestionRenderer {
         div(enumeratorQuestion.getQuestionErrorMessage().getMessage(messages))
             .withClasses(
                 ReferenceClasses.ENUMERATOR_ERROR,
-                Styles.TEXT_RED_600,
+                BaseStyles.FORM_ERROR_TEXT_BASE,
                 enumeratorQuestion.hasQuestionErrors() ? "" : Styles.HIDDEN);
 
     Tag enumeratorQuestionFormContent =

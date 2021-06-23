@@ -1,5 +1,12 @@
 package views.style;
 
+/**
+ * Constant class containing the names of styles that we have added to tailwind.
+ *
+ * <p>This file is special - strings in this file, within double quotes, are *not* stripped from the
+ * tailwind CSS during production optimization. If you add a string here, run bin/refresh-styles or
+ * restart bin/run-dev.
+ */
 public final class BaseStyles {
 
   public static final String LINK_TEXT = Styles.TEXT_BLUE_400;
@@ -73,6 +80,10 @@ public final class BaseStyles {
       StyleUtils.joinStyles(INPUT_BASE, Styles.ALIGN_MIDDLE);
   /** Same as the above but for radio buttons. */
   public static final String RADIO_LABEL = CHECKBOX_LABEL;
+
+  /** For labelling a *group* of checkboxes that are related to the same thing. */
+  public static final String CHECKBOX_GROUP_LABEL =
+      StyleUtils.joinStyles(BaseStyles.FORM_LABEL_TEXT_COLOR, Styles.TEXT_BASE);
 
   /** For use on an `input` of type "checkbox". */
   public static final String CHECKBOX =

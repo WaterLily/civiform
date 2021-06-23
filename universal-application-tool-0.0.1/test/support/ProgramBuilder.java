@@ -27,10 +27,12 @@ public class ProgramBuilder {
 
   private static Injector injector;
 
+  long programDefinitionId;
   ProgramDefinition.Builder builder;
   AtomicInteger numBlocks = new AtomicInteger(0);
 
-  private ProgramBuilder(ProgramDefinition.Builder builder) {
+  private ProgramBuilder(long programDefinitionId, ProgramDefinition.Builder builder) {
+    this.programDefinitionId = programDefinitionId;
     this.builder = builder;
   }
 
@@ -64,7 +66,7 @@ public class ProgramBuilder {
         program.getProgramDefinition().toBuilder()
             .setBlockDefinitions(ImmutableList.of())
             .setExportDefinitions(ImmutableList.of());
-    return new ProgramBuilder(builder);
+    return new ProgramBuilder(program.id, builder);
   }
 
   /**
@@ -93,7 +95,7 @@ public class ProgramBuilder {
         program.getProgramDefinition().toBuilder()
             .setBlockDefinitions(ImmutableList.of())
             .setExportDefinitions(ImmutableList.of());
-    return new ProgramBuilder(builder);
+    return new ProgramBuilder(program.id, builder);
   }
 
   public ProgramBuilder withName(String name) {
@@ -200,35 +202,54 @@ public class ProgramBuilder {
       return this;
     }
 
-    public BlockBuilder withQuestion(Question question) {
+    /** Add a required question to the block. */
+    public BlockBuilder withRequiredQuestion(Question question) {
       blockDefBuilder.addQuestion(
-          ProgramQuestionDefinition.create(question.getQuestionDefinition()));
+          ProgramQuestionDefinition.create(
+              question.getQuestionDefinition(), Optional.of(programBuilder.programDefinitionId)));
       return this;
     }
 
-    public BlockBuilder withQuestionDefinition(QuestionDefinition question) {
-      blockDefBuilder.addQuestion(ProgramQuestionDefinition.create(question));
+    public BlockBuilder withOptionalQuestion(Question question) {
+      blockDefBuilder.addQuestion(
+          ProgramQuestionDefinition.create(
+                  question.getQuestionDefinition(), Optional.of(programBuilder.programDefinitionId))
+              .setOptional(true));
       return this;
     }
 
-    public BlockBuilder withQuestions(Question... questions) {
-      return withQuestions(ImmutableList.copyOf(questions));
+    public BlockBuilder withRequiredQuestionDefinition(QuestionDefinition question) {
+      blockDefBuilder.addQuestion(
+          ProgramQuestionDefinition.create(
+              question, Optional.of(programBuilder.programDefinitionId)));
+      return this;
     }
 
-    public BlockBuilder withQuestions(ImmutableList<Question> questions) {
+    public BlockBuilder withRequiredQuestions(Question... questions) {
+      return withRequiredQuestions(ImmutableList.copyOf(questions));
+    }
+
+    public BlockBuilder withRequiredQuestions(ImmutableList<Question> questions) {
       ImmutableList<ProgramQuestionDefinition> pqds =
           questions.stream()
               .map(Question::getQuestionDefinition)
-              .map(ProgramQuestionDefinition::create)
+              .map(
+                  questionDefinition ->
+                      ProgramQuestionDefinition.create(
+                          questionDefinition, Optional.of(programBuilder.programDefinitionId)))
               .collect(ImmutableList.toImmutableList());
       blockDefBuilder.setProgramQuestionDefinitions(pqds);
       return this;
     }
 
-    public BlockBuilder withQuestionDefinitions(ImmutableList<QuestionDefinition> questions) {
+    public BlockBuilder withRequiredQuestionDefinitions(
+        ImmutableList<QuestionDefinition> questions) {
       ImmutableList<ProgramQuestionDefinition> pqds =
           questions.stream()
-              .map(ProgramQuestionDefinition::create)
+              .map(
+                  questionDefinition ->
+                      ProgramQuestionDefinition.create(
+                          questionDefinition, Optional.of(programBuilder.programDefinitionId)))
               .collect(ImmutableList.toImmutableList());
       blockDefBuilder.setProgramQuestionDefinitions(pqds);
       return this;

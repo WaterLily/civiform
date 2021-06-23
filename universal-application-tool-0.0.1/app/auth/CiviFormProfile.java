@@ -15,29 +15,25 @@ import models.Account;
 import models.Applicant;
 import play.libs.concurrent.HttpExecutionContext;
 import repository.DatabaseExecutionContext;
-import repository.ProgramRepository;
 
 /**
- * This is a "pure" wrapper of UatProfileData. Since UatProfileData is the serialized data about a
- * profile, this class should not store any data that should be serialized. It should contain only
- * server-local information, like execution contexts, database connections, etc.
+ * This is a "pure" wrapper of CiviFormProfileData. Since CiviFormProfileData is the serialized data
+ * about a profile, this class should not store any data that should be serialized. It should
+ * contain only server-local information, like execution contexts, database connections, etc.
  */
-public class UatProfile {
+public class CiviFormProfile {
   private DatabaseExecutionContext dbContext;
   private HttpExecutionContext httpContext;
-  private UatProfileData profileData;
-  private ProgramRepository programRepository;
+  private CiviFormProfileData profileData;
 
   @Inject
-  public UatProfile(
+  public CiviFormProfile(
       DatabaseExecutionContext dbContext,
       HttpExecutionContext httpContext,
-      UatProfileData profileData,
-      ProgramRepository programRepository) {
+      CiviFormProfileData profileData) {
     this.dbContext = Preconditions.checkNotNull(dbContext);
     this.httpContext = Preconditions.checkNotNull(httpContext);
     this.profileData = Preconditions.checkNotNull(profileData);
-    this.programRepository = Preconditions.checkNotNull(programRepository);
   }
 
   public CompletableFuture<Applicant> getApplicant() {
@@ -78,8 +74,8 @@ public class UatProfile {
     return getRoles().contains(Roles.ROLE_TI.toString());
   }
 
-  public boolean isUatAdmin() {
-    return profileData.getRoles().contains(Roles.ROLE_UAT_ADMIN.toString());
+  public boolean isCiviFormAdmin() {
+    return profileData.getRoles().contains(Roles.ROLE_CIVIFORM_ADMIN.toString());
   }
 
   public boolean isProgramAdmin() {
@@ -114,7 +110,7 @@ public class UatProfile {
     return this.getAccount().thenApplyAsync(Account::getEmailAddress, httpContext.current());
   }
 
-  public UatProfileData getProfileData() {
+  public CiviFormProfileData getProfileData() {
     return this.profileData;
   }
 
@@ -152,13 +148,6 @@ public class UatProfile {
               if (account.getAdministeredProgramNames().stream()
                   .anyMatch(program -> program.equals(programName))) {
                 return null;
-              }
-              if (account.getGlobalAdmin()) {
-                // If there are no administrators for this program, then all global
-                // admins count as administrators.
-                if (this.programRepository.getProgramAdministrators(programName).isEmpty()) {
-                  return null;
-                }
               }
               throw new SecurityException(
                   String.format(

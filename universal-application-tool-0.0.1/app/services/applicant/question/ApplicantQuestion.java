@@ -36,25 +36,26 @@ public class ApplicantQuestion {
    * Optional.empty()} repeated entity.
    */
   public ApplicantQuestion(
-      QuestionDefinition questionDefinition,
+      ProgramQuestionDefinition programQuestionDefinition,
       ApplicantData applicantData,
       Optional<RepeatedEntity> repeatedEntity) {
-    this.programQuestionDefinition =
-        ProgramQuestionDefinition.create(checkNotNull(questionDefinition));
+    this.programQuestionDefinition = checkNotNull(programQuestionDefinition);
     this.applicantData = checkNotNull(applicantData);
     this.repeatedEntity = checkNotNull(repeatedEntity);
   }
 
   /**
-   * If this is a repeated question, it should be created with the repeated entity associated with
-   * this question. If this is not a repeated question, then it should be created with an {@code
-   * Optional.empty()} repeated entity.
+   * DEPRECATED.
+   *
+   * <p>This constructor is only used in tests, which should eventually be converted to use the
+   * constructor that uses {@link ProgramQuestionDefinition}.
    */
   public ApplicantQuestion(
-      ProgramQuestionDefinition programQuestionDefinition,
+      QuestionDefinition questionDefinition,
       ApplicantData applicantData,
       Optional<RepeatedEntity> repeatedEntity) {
-    this.programQuestionDefinition = checkNotNull(programQuestionDefinition);
+    this.programQuestionDefinition =
+        ProgramQuestionDefinition.create(checkNotNull(questionDefinition), Optional.empty());
     this.applicantData = checkNotNull(applicantData);
     this.repeatedEntity = checkNotNull(repeatedEntity);
   }
@@ -73,6 +74,20 @@ public class ApplicantQuestion {
 
   public boolean isOptional() {
     return programQuestionDefinition.optional();
+  }
+
+  /**
+   * Return true if this question is required but was left unanswered while filling out the current
+   * program.
+   */
+  public boolean isRequiredButWasUnansweredInCurrentProgram() {
+    return !isOptional() && !errorsPresenter().isAnswered() && wasRecentlyUpdatedInThisProgram();
+  }
+
+  /** Returns true if this question was most recently updated in this program. */
+  private boolean wasRecentlyUpdatedInThisProgram() {
+    return getUpdatedInProgramMetadata().stream()
+        .anyMatch(pid -> pid.equals(programQuestionDefinition.getProgramDefinitionId()));
   }
 
   /**
@@ -138,28 +153,28 @@ public class ApplicantQuestion {
   }
 
   public Optional<Long> getUpdatedInProgramMetadata() {
-    Path contextualizedMetadataPath = getContextualizedPath().join(Scalar.PROGRAM_UPDATED_IN);
-
-    // Metadata for enumerators is stored for each JSON array element, but we rely on metadata for
-    // the first one.
-    if (getQuestionDefinition().isEnumerator()) {
-      contextualizedMetadataPath =
-          getContextualizedPath().atIndex(0).join(Scalar.PROGRAM_UPDATED_IN);
-    }
-
-    return applicantData.readLong(contextualizedMetadataPath);
+    return getMetadata(Scalar.PROGRAM_UPDATED_IN);
   }
 
   public Optional<Long> getLastUpdatedTimeMetadata() {
-    Path contextualizedMetadataPath = getContextualizedPath().join(Scalar.UPDATED_AT);
+    return getMetadata(Scalar.UPDATED_AT);
+  }
 
-    // Metadata for enumerators are stored for each JSON array element, but we rely on metadata for
-    // the first one.
-    if (getQuestionDefinition().isEnumerator()) {
-      contextualizedMetadataPath = getContextualizedPath().atIndex(0).join(Scalar.UPDATED_AT);
-    }
-
+  private Optional<Long> getMetadata(Scalar metadataScalar) {
+    Path contextualizedMetadataPath = getMetadataPath(metadataScalar);
     return applicantData.readLong(contextualizedMetadataPath);
+  }
+
+  private Path getMetadataPath(Scalar metadataScalar) {
+    // For enumerator questions, rely on the metadata at the first repeated entity if it exists.
+    // If it doesn't exist, check for metadata stored when there are no repeated entities.
+    if (getQuestionDefinition().isEnumerator()) {
+      Path firstEntity = getContextualizedPath().atIndex(0);
+      return applicantData.hasPath(firstEntity)
+          ? firstEntity.join(metadataScalar)
+          : getContextualizedPath().withoutArrayReference().join(metadataScalar);
+    }
+    return getContextualizedPath().join(metadataScalar);
   }
 
   public AddressQuestion createAddressQuestion() {
@@ -198,6 +213,10 @@ public class ApplicantQuestion {
     return new SingleSelectQuestion(this);
   }
 
+  public StaticContentQuestion createStaticContentQuestion() {
+    return new StaticContentQuestion(this);
+  }
+
   public TextQuestion createTextQuestion() {
     return new TextQuestion(this);
   }
@@ -225,6 +244,8 @@ public class ApplicantQuestion {
         return createEnumeratorQuestion();
       case TEXT:
         return createTextQuestion();
+      case STATIC:
+        return createStaticContentQuestion();
       default:
         throw new RuntimeException("Unrecognized question type: " + getType());
     }
