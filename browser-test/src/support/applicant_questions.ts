@@ -85,7 +85,7 @@ export class ApplicantQuestions {
   }
 
  async deleteEnumeratorEntity(entityName: string) {
-    }this.page.once('dialog', async dialog => {
+    this.page.once('dialog', async dialog => {
       await dialog.accept();
     });
     await this.page.click(`.cf-enumerator-field:has(input[value="${entityName}"]) button`);
